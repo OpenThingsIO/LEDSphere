@@ -1,6 +1,6 @@
-char ssid[] = "xxx";
-char pass[] = "xxx";
-const char auth[] = "xxxxxx";
+char ssid[] = "freefly";
+char pass[] = "lrtsucks";
+const char auth[] = "QNI95ZLfsquXuc3lKoa4SXkOnKFppa10";
 
 #define IRRCV D5
 #define LED D4

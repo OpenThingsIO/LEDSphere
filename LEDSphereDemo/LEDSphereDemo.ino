@@ -7,10 +7,14 @@
 
 #include "defines.h"
 
+#define fontWidth 5
+#define fontHeight 7
+#include "font5x7.h"
+
 Adafruit_NeoPixel pixel = Adafruit_NeoPixel(NUM_NEOPS, NEOP, NEO_GRB+NEO_KHZ800);
 unsigned long frameBuf[BUFSIZE];
 unsigned long demo_timeout = 0;
-#define DEMO_TIME 8000L
+#define DEMO_TIME 20000L
 
 void setup() {
   Serial.begin(115200);
@@ -24,12 +28,12 @@ void setup() {
   demo_timeout = millis() + DEMO_TIME;
 }
 
-#define NUM_DEMOS 7
-byte demoindex = 0;
+#define NUM_DEMOS 9
+byte demoindex = 8;
 
 void loop() {
 	ArduinoOTA.handle();
-  Blynk.run();
+  //Blynk.run();
 
 	switch(demoindex) {
 	case 0:
@@ -69,6 +73,18 @@ void loop() {
 		prepare_demo6();
 		displayFrameBuf();
 		break;
+		
+	case 7:
+		pixel.setBrightness(32);
+		prepare_demo7();
+		displayFrameBuf();
+		break;
+		
+	case 8:
+		pixel.setBrightness(255);
+		prepare_demo8();
+		displayFrameBuf();
+		break;
 	}
 
 	if(millis() > demo_timeout) {
@@ -84,11 +100,65 @@ void displayFrameBuf() {
   		pixel.setPixelColor(j-i, frameBuf[j]);
   	}
   	pixel.show();
-  }		
+  }
+  pixel.clear();
+  pixel.show();
 }
 
 unsigned long wipecolors[] = {0xFF0000, 0x00FF00, 0x0000FF,
 0xFFFF00, 0xFF00FF, 0x00FFFF};
+
+uint16_t d8scrollindex = 0;
+String scrolltext = "CICS ROCKS!";
+void drawCol(char c, int i, unsigned long color){
+  if(i >= 0 && i < NUMCOLS){
+    for(int j = 0; j < fontHeight; j++){
+       	frameBuf[i*NUM_NEOPS+(3+j)] = (c&0x1) ? color : 0;
+        c >>= 1;
+    }
+  }
+}
+
+void drawScrollFrame(unsigned long color) {
+  for(byte i = 0; i < NUMCOLS; i++) {
+    uint16_t sidx = (d8scrollindex+i);
+    byte charidx = (sidx/(fontWidth+3)) % scrolltext.length();
+    char c = scrolltext.charAt(charidx);
+    byte colidx  = sidx%(fontWidth+3);
+    if(colidx<fontWidth)
+      drawCol(pgm_read_byte(font+(c*fontWidth)+colidx), i, color);
+    else
+      drawCol(0, i, color);
+  }
+
+  /* the total number of columns is equal to the text
+     length multipled by 6 (5 columns + 1 empty) */
+  d8scrollindex = (d8scrollindex+1)%(scrolltext.length()*(fontWidth+3));
+}
+
+unsigned long d8timeout = 0;
+void prepare_demo8() {
+	if(millis() > d8timeout) {	
+		drawScrollFrame(0x00FF00);
+		d8timeout = millis() + 50;
+	}
+}
+
+unsigned long d7index = 0;
+unsigned long d7timeout = 0;
+byte d7colindex = 0;
+void prepare_demo7() {
+	for(byte r=0;r<NUM_NEOPS*4;r++) {
+		frameBuf[d7index+r] = wipecolors[d7colindex];
+	}
+	d7index+=4*NUM_NEOPS;
+	
+	if(d7index>=BUFSIZE) {
+		d7colindex = (d7colindex+1)%6;
+		d7index = 0;
+	}
+}
+
 unsigned long d6timeout = 0;
 int d6row = 0;
 byte d6colindex = 0;
